@@ -13,12 +13,12 @@ export default function Sidebar() {
         initial={{ x: -300 }}
         animate={{ x: isOpen ? 0 : -300 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="fixed top-0 left-0 h-screen w-64 bg-[#fafafa] text-black shadow-2xl p-5 flex flex-col justify-between z-[60]"
+        className="fixed top-0 left-0 h-screen w-64 bg-[#fafafa] text-black shadow-2xl p-5 flex flex-col justify-between z-[60] md:static md:translate-x-0 md:shadow-none"
       >
         {/* Toggle Button (Inside Sidebar) */}
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
-          className="absolute top-4 right-4 z-50 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition"
+          className="absolute top-4 right-4 z-50 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition md:hidden"
           initial={{ opacity: 1 }}
           animate={{ opacity: isOpen ? 1 : 0 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
@@ -28,7 +28,7 @@ export default function Sidebar() {
 
         {/* Sidebar Menu */}
         <div className="space-y-6 mt-12">
-          <h2 className="text-lg font-bold"></h2>
+          <h2 className="text-lg font-bold">Menu</h2>
           <NavItem Icon={Home} label="Home" />
           <NavItem Icon={Settings} label="Settings" />
           <NavItem Icon={User} label="Profile" />
@@ -42,11 +42,11 @@ export default function Sidebar() {
         </div>
       </motion.div>
 
-      {/* Toggle Button (Always Visible) */}
+      {/* Toggle Button (Always Visible on Mobile) */}
       {!isOpen && (
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
-          className="fixed top-4 left-4 z-50 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition"
+          className="fixed top-4 left-4 z-50 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition md:hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
