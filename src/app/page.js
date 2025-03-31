@@ -66,6 +66,31 @@ export default function Dashboard() {
     setEditingIndex(index);
   };
 
+  // Export tasks to CSV
+  const exportToCSV = () => {
+    const csvRows = [];
+    csvRows.push("Category,Task"); // Add headers
+
+    // Convert tasks object to CSV rows
+    Object.keys(tasks).forEach((category) => {
+      tasks[category].forEach((task) => {
+        csvRows.push(`${category},"${task}"`);
+      });
+    });
+
+    // Create a CSV string
+    const csvString = csvRows.join("\n");
+
+    // Create a Blob and downloadable link
+    const blob = new Blob([csvString], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tasks.csv";
+    a.click();
+    URL.revokeObjectURL(url); // Clean up
+  };
+
   return (
     <motion.div
       className="flex flex-col md:flex-row min-h-screen"
@@ -82,9 +107,9 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="flex-1 bg-gray-100 p-4 sm:p-6">
-  <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 font-poppins text-center md:text-left md:ml-20">
-    Board View
-  </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 font-poppins text-center md:text-left md:ml-20">
+          Board View
+        </h1>
 
         {/* Task Input Section */}
         <div className="bg-white shadow-lg rounded-lg p-4 w-full mb-6">
@@ -146,6 +171,18 @@ export default function Dashboard() {
             onClick={addTask}
           >
             {editingIndex !== null ? "Update Task" : "Create Task"}
+          </motion.button>
+        </div>
+
+        {/* Export to CSV Button */}
+        <div className="flex justify-center mb-6">
+          <motion.button
+            whileHover={{ scale: 1.1}}
+            whileTap={{ scale: 0.9}}
+            onClick={exportToCSV}
+            className="bg-yellow-500 text-white font-bold px-6 py-2 rounded-lg shadow-md transition-all duration-300 hover:bg-[#fe8f2d] active:scale-95"
+          >
+            Export to CSV
           </motion.button>
         </div>
 
