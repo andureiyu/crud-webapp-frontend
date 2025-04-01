@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Sidebar from "./sidebar";
 
 export default function Dashboard() {
   const [taskInput, setTaskInput] = useState("");
@@ -30,16 +29,28 @@ export default function Dashboard() {
     { label: "Totally Needed 📌", color: "text-blue-500" },
   ];
 
+  // Load tasks and schedules from local storage on mount
   useEffect(() => {
     const savedTasks = localStorage.getItem("tasks");
     if (savedTasks) {
       setTasks(JSON.parse(savedTasks));
     }
+
+    const savedSchedules = localStorage.getItem("schedules");
+    if (savedSchedules) {
+      setSchedules(JSON.parse(savedSchedules));
+    }
   }, []);
 
+  // Save tasks to local storage whenever they change
   useEffect(() => {
     localStorage.setItem("tasks", JSON.stringify(tasks));
   }, [tasks]);
+
+  // Save schedules to local storage whenever they change
+  useEffect(() => {
+    localStorage.setItem("schedules", JSON.stringify(schedules));
+  }, [schedules]);
 
   const addTask = () => {
     if (!taskInput.trim()) return;
@@ -139,9 +150,51 @@ export default function Dashboard() {
     setSchedules((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const exportSchedulesToCSV = () => {
+    const csvRows = [];
+    csvRows.push("Task Name,Assigned To,Date,Time,Status");
+
+    schedules.forEach((schedule) => {
+      csvRows.push(
+        `${schedule.taskName},${schedule.assignedTo},${schedule.date},${schedule.time},${schedule.status}`
+      );
+    });
+
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "schedules.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importSchedulesFromCSV = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvData = e.target.result;
+      const rows = csvData.split("\n").slice(1); // Skip the header row
+      const importedSchedules = rows
+        .map((row) => {
+          const [taskName, assignedTo, date, time, status] = row.split(",");
+          if (!taskName || !assignedTo || !date || !time || !status) return null;
+          return { taskName, assignedTo, date, time, status };
+        })
+        .filter(Boolean); // Remove invalid rows
+
+      setSchedules((prev) => [...prev, ...importedSchedules]);
+    };
+
+    reader.readAsText(file);
+  };
+
   return (
     <motion.div
-      className="flex flex-col md:flex-row min-h-screen"
+      className="flex flex-col min-h-screen"
       initial={{ opacity: 0, y: -50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -50 }}
@@ -150,13 +203,12 @@ export default function Dashboard() {
         ease: [0.6, -0.05, 0.01, 0.99],
       }}
     >
-      <Sidebar />
-
       <div className="flex-1 bg-gray-100 p-4 sm:p-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 font-poppins text-center md:text-left md:ml-20">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 font-poppins text-center">
           Board View
         </h1>
 
+        {/* Task Management Section */}
         <div className="bg-white shadow-lg rounded-lg p-4 w-full mb-6">
           <textarea
             className="w-full border rounded p-2 mb-2 resize-none h-24"
@@ -217,17 +269,7 @@ export default function Dashboard() {
           </motion.button>
         </div>
 
-        <div className="flex justify-center mb-6">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={exportToCSV}
-            className="bg-yellow-500 text-white font-bold px-6 py-2 rounded-lg shadow-md transition-all duration-300 hover:bg-[#fe8f2d] active:scale-95"
-          >
-            Export to CSV
-          </motion.button>
-        </div>
-
+        {/* Task Display Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {categories.map(({ label, color }) => (
             <div key={label} className="bg-white shadow-lg rounded-lg p-4">
@@ -278,6 +320,17 @@ export default function Dashboard() {
               </AnimatePresence>
             </div>
           ))}
+        </div>
+
+        <div className="flex justify-center mb-6">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={exportToCSV}
+            className="bg-yellow-500 text-white font-bold px-6 py-2 rounded-lg shadow-md transition-all duration-300 hover:bg-[#fe8f2d] active:scale-95"
+          >
+            Export Tasks to CSV
+          </motion.button>
         </div>
 
         {/* Scheduling Feature */}
@@ -361,6 +414,33 @@ export default function Dashboard() {
           >
             {editingScheduleIndex !== null ? "Update Schedule" : "Add Schedule"}
           </motion.button>
+
+          <div className="flex justify-center mt-6">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={exportSchedulesToCSV}
+              className="bg-yellow-500 text-white font-bold px-6 py-2 rounded-lg shadow-md transition-all duration-300 hover:bg-[#fe8f2d] active:scale-95"
+            >
+              Export Schedules to CSV
+            </motion.button>
+          </div>
+
+          <div className="flex justify-center mt-6">
+            <label
+              htmlFor="import-csv"
+              className="bg-blue-500 text-white font-bold px-6 py-2 rounded-lg shadow-md transition-all duration-300 hover:bg-blue-600 active:scale-95 cursor-pointer"
+            >
+              Import Schedules from CSV
+            </label>
+            <input
+              id="import-csv"
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={importSchedulesFromCSV}
+            />
+          </div>
 
           <div className="mt-6">
             <h3 className="text-xl font-bold mb-4">Scheduled Tasks</h3>
