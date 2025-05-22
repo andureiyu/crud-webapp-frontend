@@ -1,0 +1,336 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model group_session_participants {
+  participation_id  Int            @id @default(autoincrement())
+  group_session_id  Int
+  student_id        Int
+  registration_time DateTime?      @default(now()) @db.Timestamp(0)
+  payment_status    String?        @default("pending") @db.VarChar(50)
+  attended          Boolean?       @default(false)
+  group_sessions    group_sessions @relation(fields: [group_session_id], references: [group_session_id], onDelete: Cascade, onUpdate: NoAction, map: "group_session_participants_ibfk_1")
+  students          students       @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "group_session_participants_ibfk_2")
+
+  @@unique([group_session_id, student_id], map: "group_session_id")
+  @@index([student_id], map: "student_id")
+}
+
+model group_sessions {
+  group_session_id           Int                          @id @default(autoincrement())
+  tutor_id                   Int
+  subject_id                 Int
+  title                      String                       @db.VarChar(255)
+  description                String?                      @db.Text
+  start_time                 DateTime                     @db.DateTime(0)
+  end_time                   DateTime                     @db.DateTime(0)
+  max_participants           Int
+  current_participants       Int?                         @default(0)
+  price_per_student          Decimal                      @db.Decimal(10, 2)
+  meeting_url                String?                      @db.VarChar(255)
+  status                     String                       @default("scheduled") @db.VarChar(50)
+  created_at                 DateTime?                    @default(now()) @db.Timestamp(0)
+  group_session_participants group_session_participants[]
+  tutors                     tutors                       @relation(fields: [tutor_id], references: [tutor_id], onDelete: NoAction, onUpdate: NoAction, map: "group_sessions_ibfk_1")
+  subjects                   subjects                     @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction, map: "group_sessions_ibfk_2")
+
+  @@index([subject_id], map: "subject_id")
+  @@index([tutor_id], map: "tutor_id")
+}
+
+model messages {
+  message_id                         Int       @id @default(autoincrement())
+  sender_id                          Int
+  recipient_id                       Int
+  content                            String    @db.Text
+  sent_at                            DateTime? @default(now()) @db.Timestamp(0)
+  read_at                            DateTime? @db.DateTime(0)
+  attachment_url                     String?   @db.VarChar(255)
+  users_messages_sender_idTousers    users     @relation("messages_sender_idTousers", fields: [sender_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "messages_ibfk_1")
+  users_messages_recipient_idTousers users     @relation("messages_recipient_idTousers", fields: [recipient_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "messages_ibfk_2")
+
+  @@index([recipient_id], map: "idx_messages_recipient_id")
+  @@index([sender_id], map: "idx_messages_sender_id")
+}
+
+model notifications {
+  notification_id   Int       @id @default(autoincrement())
+  user_id           Int
+  title             String    @db.VarChar(255)
+  content           String    @db.Text
+  notification_type String    @db.VarChar(50)
+  related_id        Int?
+  created_at        DateTime? @default(now()) @db.Timestamp(0)
+  read_at           DateTime? @db.DateTime(0)
+  is_read           Boolean?  @default(false)
+  users             users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "notifications_ibfk_1")
+
+  @@index([user_id], map: "idx_notifications_user_id")
+}
+
+model payments {
+  payment_id     Int       @id @default(autoincrement())
+  session_id     Int
+  amount         Decimal   @db.Decimal(10, 2)
+  payment_date   DateTime? @default(now()) @db.Timestamp(0)
+  payment_method String    @db.VarChar(50)
+  transaction_id String?   @db.VarChar(255)
+  status         String    @db.VarChar(50)
+  platform_fee   Decimal   @db.Decimal(10, 2)
+  tutor_payout   Decimal   @db.Decimal(10, 2)
+  payout_date    DateTime? @db.DateTime(0)
+  refund_amount  Decimal?  @default(0.00) @db.Decimal(10, 2)
+  refund_date    DateTime? @db.DateTime(0)
+  refund_reason  String?   @db.Text
+  sessions       sessions  @relation(fields: [session_id], references: [session_id], onDelete: NoAction, onUpdate: NoAction, map: "payments_ibfk_1")
+
+  @@index([session_id], map: "idx_payments_session_id")
+}
+
+model resources {
+  resource_id       Int                 @id @default(autoincrement())
+  title             String              @db.VarChar(255)
+  description       String?             @db.Text
+  url               String?             @db.VarChar(255)
+  file_path         String?             @db.VarChar(255)
+  subject_id        Int?
+  uploaded_by       Int
+  resource_type     String              @db.VarChar(50)
+  is_public         Boolean?            @default(false)
+  created_at        DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at        DateTime?           @default(now()) @db.Timestamp(0)
+  subjects          subjects?           @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction, map: "resources_ibfk_1")
+  users             users               @relation(fields: [uploaded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "resources_ibfk_2")
+  session_resources session_resources[]
+
+  @@index([subject_id], map: "idx_resources_subject_id")
+  @@index([uploaded_by], map: "uploaded_by")
+}
+
+model session_notes {
+  note_id    Int       @id @default(autoincrement())
+  session_id Int
+  author_id  Int
+  content    String    @db.Text
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @default(now()) @db.Timestamp(0)
+  is_private Boolean?  @default(false)
+  sessions   sessions  @relation(fields: [session_id], references: [session_id], onDelete: Cascade, onUpdate: NoAction, map: "session_notes_ibfk_1")
+  users      users     @relation(fields: [author_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "session_notes_ibfk_2")
+
+  @@index([author_id], map: "author_id")
+  @@index([session_id], map: "session_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model session_ratings {
+  rating_id  Int       @id @default(autoincrement())
+  session_id Int       @unique(map: "session_id")
+  student_id Int
+  tutor_id   Int
+  rating     Decimal   @db.Decimal(3, 2)
+  feedback   String?   @db.Text
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  sessions   sessions  @relation(fields: [session_id], references: [session_id], onDelete: Cascade, onUpdate: NoAction, map: "session_ratings_ibfk_1")
+  students   students  @relation(fields: [student_id], references: [student_id], onDelete: NoAction, onUpdate: NoAction, map: "session_ratings_ibfk_2")
+  tutors     tutors    @relation(fields: [tutor_id], references: [tutor_id], onDelete: NoAction, onUpdate: NoAction, map: "session_ratings_ibfk_3")
+
+  @@index([student_id], map: "student_id")
+  @@index([tutor_id], map: "tutor_id")
+}
+
+model session_resources {
+  session_resource_id Int       @id @default(autoincrement())
+  session_id          Int
+  resource_id         Int
+  sessions            sessions  @relation(fields: [session_id], references: [session_id], onDelete: Cascade, onUpdate: NoAction, map: "session_resources_ibfk_1")
+  resources           resources @relation(fields: [resource_id], references: [resource_id], onDelete: Cascade, onUpdate: NoAction, map: "session_resources_ibfk_2")
+
+  @@unique([session_id, resource_id], map: "session_id")
+  @@index([resource_id], map: "resource_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sessions {
+  session_id          Int                 @id @default(autoincrement())
+  tutor_id            Int
+  student_id          Int
+  subject_id          Int
+  start_time          DateTime            @db.DateTime(0)
+  end_time            DateTime            @db.DateTime(0)
+  duration_minutes    Int?
+  hourly_rate         Decimal             @db.Decimal(10, 2)
+  session_cost        Decimal?            @db.Decimal(10, 2)
+  status              String              @default("scheduled") @db.VarChar(50)
+  meeting_url         String?             @db.VarChar(255)
+  notes               String?             @db.Text
+  materials_url       String?             @db.Text
+  created_at          DateTime?           @default(now()) @db.Timestamp(0)
+  canceled_at         DateTime?           @db.DateTime(0)
+  cancellation_reason String?             @db.Text
+  cancellation_fee    Decimal?            @default(0.00) @db.Decimal(10, 2)
+  payments            payments[]
+  session_notes       session_notes[]
+  session_ratings     session_ratings?
+  session_resources   session_resources[]
+  tutors              tutors              @relation(fields: [tutor_id], references: [tutor_id], onDelete: NoAction, onUpdate: NoAction, map: "sessions_ibfk_1")
+  students            students            @relation(fields: [student_id], references: [student_id], onDelete: NoAction, onUpdate: NoAction, map: "sessions_ibfk_2")
+  subjects            subjects            @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction, map: "sessions_ibfk_3")
+
+  @@index([start_time], map: "idx_sessions_start_time")
+  @@index([status], map: "idx_sessions_status")
+  @@index([student_id], map: "idx_sessions_student_id")
+  @@index([subject_id], map: "idx_sessions_subject_id")
+  @@index([tutor_id], map: "idx_sessions_tutor_id")
+}
+
+model student_subject_interests {
+  interest_id    Int      @id @default(autoincrement())
+  student_id     Int
+  subject_id     Int
+  interest_level String?  @db.VarChar(50)
+  students       students @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "student_subject_interests_ibfk_1")
+  subjects       subjects @relation(fields: [subject_id], references: [subject_id], onDelete: Cascade, onUpdate: NoAction, map: "student_subject_interests_ibfk_2")
+
+  @@unique([student_id, subject_id], map: "student_id")
+  @@index([subject_id], map: "subject_id")
+}
+
+model students {
+  student_id                 Int                          @id @default(autoincrement())
+  user_id                    Int                          @unique(map: "user_id")
+  education_level            String?                      @db.VarChar(50)
+  grade_year                 String?                      @db.VarChar(50)
+  parent_guardian_name       String?                      @db.VarChar(200)
+  parent_guardian_email      String?                      @db.VarChar(255)
+  parent_guardian_phone      String?                      @db.VarChar(20)
+  special_needs              String?                      @db.Text
+  learning_preferences       String?                      @db.Text
+  group_session_participants group_session_participants[]
+  session_ratings            session_ratings[]
+  sessions                   sessions[]
+  student_subject_interests  student_subject_interests[]
+  users                      users                        @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "students_ibfk_1")
+  subscriptions              subscriptions[]
+}
+
+model subject_categories {
+  category_id Int        @id @default(autoincrement())
+  name        String     @db.VarChar(100)
+  description String?    @db.Text
+  subjects    subjects[]
+}
+
+model subjects {
+  subject_id                Int                         @id @default(autoincrement())
+  category_id               Int?
+  name                      String                      @db.VarChar(100)
+  description               String?                     @db.Text
+  difficulty_level          String?                     @db.VarChar(50)
+  group_sessions            group_sessions[]
+  resources                 resources[]
+  sessions                  sessions[]
+  student_subject_interests student_subject_interests[]
+  subject_categories        subject_categories?         @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction, map: "subjects_ibfk_1")
+  tutor_subjects            tutor_subjects[]
+
+  @@index([category_id], map: "category_id")
+}
+
+model subscriptions {
+  subscription_id   Int       @id @default(autoincrement())
+  student_id        Int
+  plan_name         String    @db.VarChar(100)
+  description       String?   @db.Text
+  price             Decimal   @db.Decimal(10, 2)
+  billing_cycle     String    @db.VarChar(50)
+  sessions_included Int?
+  hours_included    Decimal?  @db.Decimal(10, 2)
+  start_date        DateTime  @db.Date
+  end_date          DateTime? @db.Date
+  is_active         Boolean?  @default(true)
+  auto_renew        Boolean?  @default(true)
+  payment_method    String?   @db.VarChar(50)
+  last_billing_date DateTime? @db.Date
+  next_billing_date DateTime? @db.Date
+  students          students  @relation(fields: [student_id], references: [student_id], onDelete: NoAction, onUpdate: NoAction, map: "subscriptions_ibfk_1")
+
+  @@index([student_id], map: "student_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model tutor_availability {
+  availability_id Int       @id @default(autoincrement())
+  tutor_id        Int
+  day_of_week     Int       @db.TinyInt
+  start_time      DateTime  @db.Time(0)
+  end_time        DateTime  @db.Time(0)
+  is_recurring    Boolean?  @default(true)
+  specific_date   DateTime? @db.Date
+  tutors          tutors    @relation(fields: [tutor_id], references: [tutor_id], onDelete: Cascade, onUpdate: NoAction, map: "tutor_availability_ibfk_1")
+
+  @@index([tutor_id], map: "idx_tutor_availability_tutor_id")
+}
+
+model tutor_subjects {
+  tutor_subject_id  Int      @id @default(autoincrement())
+  tutor_id          Int
+  subject_id        Int
+  proficiency_level String   @db.VarChar(50)
+  verified          Boolean? @default(false)
+  tutors            tutors   @relation(fields: [tutor_id], references: [tutor_id], onDelete: Cascade, onUpdate: NoAction, map: "tutor_subjects_ibfk_1")
+  subjects          subjects @relation(fields: [subject_id], references: [subject_id], onDelete: Cascade, onUpdate: NoAction, map: "tutor_subjects_ibfk_2")
+
+  @@unique([tutor_id, subject_id], map: "tutor_id")
+  @@index([subject_id], map: "idx_tutor_subjects_subject_id")
+  @@index([tutor_id], map: "idx_tutor_subjects_tutor_id")
+}
+
+model tutors {
+  tutor_id                Int                  @id @default(autoincrement())
+  user_id                 Int                  @unique(map: "user_id")
+  hourly_rate             Decimal              @db.Decimal(10, 2)
+  experience_years        Int?
+  qualification           String               @db.Text
+  background_check_status String?              @db.VarChar(50)
+  background_check_date   DateTime?            @db.Date
+  avg_rating              Decimal?             @db.Decimal(3, 2)
+  total_sessions          Int?                 @default(0)
+  is_verified             Boolean?             @default(false)
+  verification_date       DateTime?            @db.Date
+  payment_details         Json?
+  group_sessions          group_sessions[]
+  session_ratings         session_ratings[]
+  sessions                sessions[]
+  tutor_availability      tutor_availability[]
+  tutor_subjects          tutor_subjects[]
+  users                   users                @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "tutors_ibfk_1")
+}
+
+model users {
+  user_id                               Int             @id @default(autoincrement())
+  email                                 String          @unique(map: "email") @db.VarChar(255)
+  password_hash                         String          @db.VarChar(255)
+  first_name                            String          @db.VarChar(100)
+  last_name                             String          @db.VarChar(100)
+  phone                                 String?         @db.VarChar(20)
+  date_of_birth                         DateTime?       @db.Date
+  profile_picture                       String?         @db.VarChar(255)
+  bio                                   String?         @db.Text
+  created_at                            DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at                            DateTime?       @default(now()) @db.Timestamp(0)
+  is_active                             Boolean?        @default(true)
+  messages_messages_sender_idTousers    messages[]      @relation("messages_sender_idTousers")
+  messages_messages_recipient_idTousers messages[]      @relation("messages_recipient_idTousers")
+  notifications                         notifications[]
+  resources                             resources[]
+  session_notes                         session_notes[]
+  students                              students?
+  tutors                                tutors?
+}

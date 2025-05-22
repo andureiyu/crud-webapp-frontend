@@ -9,12 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^6.8.2",
     "dotenv": "^16.4.7",
     "framer-motion": "^12.6.2",
     "lucide-react": "^0.485.0",
     "mongoose": "^8.13.1",
-    "mysql2": "^3.14.0",
+    "mysql2": "^3.14.1",
     "next": "^15.2.4",
+    "prisma": "^6.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sequelize": "^6.37.7"
